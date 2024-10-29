@@ -1,3 +1,6 @@
+"""
+SQLite database builder.
+"""
 import sqlite3 as sq
 
 from machine import Machine
@@ -10,7 +13,7 @@ def build_database(machine_list:list[Machine],path:str="mame_roms.db")->None:
 
 	# Create tables.
 	machine_fields=Machine.fields()
-	rom_columns_types="TEXT PRIMARY KEY","TEXT","TEXT","INT","TEXT","TEXT","TEXT"
+	rom_columns_types="TEXT PRIMARY KEY","TEXT","TEXT","TEXT","TEXT","TEXT","TEXT"
 	rom_columns=",".join([" ".join((a,b)) for a,b in zip(machine_fields,rom_columns_types)])
 	sql=f"""
 	PRAGMA foreign_keys=OFF;
@@ -20,10 +23,10 @@ def build_database(machine_list:list[Machine],path:str="mame_roms.db")->None:
 	# Insert rows.
 	values:list[str]=[]
 	for m in machine_list:
-		parent=f'"{m.parent}"' if m.parent!=None else "Null"
+		m.parent=m.parent.replace('"','""')#f'"{m.parent}"'# if m.parent!=None else "Null"
 		m.description=m.description.replace('"','""')
 		m.manufacturer=m.manufacturer.replace('"','""')
-		value=f'("{m.name}", "{m.source}", "{m.description}", {m.year}, "{m.manufacturer}",{parent} ,"{m.category}" )'
+		value:str=f'("{m.name}","{m.source}","{m.description}","{m.year}","{m.manufacturer}","{m.parent}","{m.category}")'
 		values.append(value)
 	insert_command=f"""INSERT INTO rom VALUES {','.join(values)};"""
 	sql+=insert_command
@@ -43,10 +46,10 @@ def build_database(machine_list:list[Machine],path:str="mame_roms.db")->None:
 	con.commit()
 
 	# Check constraints.
-	cur.execute("PRAGMA foreign_key_check")
-	results=cur.fetchall()
-	for table, rowid, _,_  in results:
-		cur.execute(f"SELECT * FROM {table} WHERE rowid = ?", (rowid,))
-		row = cur.fetchone()
-		print(f"Warning: unknown parent for clone: {table}: {row}")
-	con.close()
+	# cur.execute("PRAGMA foreign_key_check")
+	# results=cur.fetchall()
+	# for table, rowid, _,_  in results:
+	# 	cur.execute(f"SELECT * FROM {table} WHERE rowid = ?", (rowid,))
+	# 	row = cur.fetchone()
+	# 	print(f"Warning: unknown parent for clone: {table}: {row}")
+	# con.close()

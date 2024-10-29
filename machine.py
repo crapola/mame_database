@@ -1,13 +1,14 @@
 import dataclasses
 
+
 @dataclasses.dataclass
 class Machine:
 	name:str=""
 	source:str=""
 	description:str=""
-	year:int=0
+	year:str=""
 	manufacturer:str=""
-	parent:str|None=""
+	parent:str=""
 	category:str=""
 
 	@classmethod
