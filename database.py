@@ -3,32 +3,31 @@ SQLite database builder.
 """
 import sqlite3 as sq
 
-from machine import Machine
 
-
-def build_database(machine_list:list[Machine],path:str="mame_roms.db")->None:
+def build_database(machine_list:list[dict],path:str,columns:tuple[str,...])->None:
 	"""
 	Create or overwrite the database.
 	"""
 
+	# Convert machine dicts to lists of strings in column order.
+	machines:list=[sorted(d.items(),key=lambda x:columns.index(x[0])) for d in machine_list]
+	machines=[list(zip(*x))[1] for x in machines]
+
 	# Create tables.
-	machine_fields=Machine.fields()
-	rom_columns_types="TEXT PRIMARY KEY","TEXT","TEXT","TEXT","TEXT","TEXT","TEXT"
-	rom_columns=",".join([" ".join((a,b)) for a,b in zip(machine_fields,rom_columns_types)])
-	sql=f"""
+	rom_columns_types:tuple=("TEXT PRIMARY KEY",*("TEXT",)*6)
+	rom_columns:str=",".join([" ".join((a,b)) for a,b in zip(columns,rom_columns_types)])
+	sql:str=f"""
 	PRAGMA foreign_keys=OFF;
-	CREATE TABLE rom({rom_columns},FOREIGN KEY(parent) REFERENCES rom(name));
+	CREATE TABLE rom({rom_columns},FOREIGN KEY(romof) REFERENCES rom(name));
 	"""
 
 	# Insert rows.
 	values:list[str]=[]
-	for m in machine_list:
-		m.parent=m.parent.replace('"','""')#f'"{m.parent}"'# if m.parent!=None else "Null"
-		m.description=m.description.replace('"','""')
-		m.manufacturer=m.manufacturer.replace('"','""')
-		value:str=f'("{m.name}","{m.source}","{m.description}","{m.year}","{m.manufacturer}","{m.parent}","{m.category}")'
+	for m in machines:
+		escaped:list[str]=["'"+x.replace("'",'"').replace('"','"')+"'" for x in m]
+		value:str="("+",".join(escaped)+")"
 		values.append(value)
-	insert_command=f"""INSERT INTO rom VALUES {','.join(values)};"""
+	insert_command:str=f"""INSERT INTO rom VALUES {','.join(values)};"""
 	sql+=insert_command
 	sql+="PRAGMA foreign_keys=ON;"
 
